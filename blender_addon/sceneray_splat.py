@@ -96,6 +96,8 @@ from .building_data import manifest as bd_manifest
 from .building_data import paths as bd_paths
 from .building_data import dataset_export as bd_export
 from .building_data import pointcloud as bd_pointcloud
+from .raw_export import hooks as raw_hooks
+from .raw_export import stage as raw_stage
 
 #: The stages each Building Data workflow reports, in order.
 #: RGB and depth must be rendered before the point cloud can be reconstructed.
@@ -116,6 +118,14 @@ BUILD_WORKFLOW_LABELS = {
     'POINTS': "Generate Point Cloud",
     'FULL': "Build Dataset",
 }
+
+
+def _sr_workflow_stages(scene, workflow, fallback):
+    """The phases a workflow will announce, including the raw export."""
+    stages = tuple(BUILD_WORKFLOW_STAGES.get(workflow, fallback))
+    if raw_stage.should_run(scene, workflow):
+        stages += (raw_stage.PHASE,)
+    return stages
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -2558,6 +2568,8 @@ class SCENERAY_SPLAT_OT_render_images(bpy.types.Operator):
                 message = f"Could not prepare SplatGen metadata passes: {exc}"
                 self.metadata_failures.append(("setup", message))
                 print(f"[sceneray_splat] WARNING: {message}; RGB build continues")
+        # Raw beauty passes ride along with this same render (best-effort).
+        raw_hooks.batch_begin(self)
 
 
     def _persist_manifest(self):
@@ -2591,6 +2603,7 @@ class SCENERAY_SPLAT_OT_render_images(bpy.types.Operator):
         bd_export.prepare_view(
             getattr(self, "_dataset_capture", None), frame_index, clip_end
         )
+        raw_hooks.batch_prepare(self, frame_index)
         _sr_check_render_disk_space(
             self.output_dir, self.render, self.eff_res)
         bpy.context.view_layer.update()
@@ -2646,6 +2659,7 @@ class SCENERAY_SPLAT_OT_render_images(bpy.types.Operator):
                 f"[sceneray_splat] WARNING: metadata for '{cam_obj.name}' "
                 f"failed: {message}; canonical dataset continues"
             )
+        raw_hooks.batch_finish(self, cam_obj.name, frame_index)
         training_relative = _sr_dataset_training_relative_path(
             self.cfg,
             frame_index,
@@ -2733,6 +2747,8 @@ class SCENERAY_SPLAT_OT_render_images(bpy.types.Operator):
         return ", ".join(parts)
 
     def _finish(self):
+        # Raw first: its nodes live inside the legacy capture's tree.
+        raw_hooks.batch_restore(self)
         bd_export.restore_capture(getattr(self, "_dataset_capture", None))
         self._dataset_capture = None
         restore_render_output_state(
@@ -3310,6 +3326,10 @@ def _sr_abort_render_batch(reason="Render batch stopped."):
     if batch is None:
         return
     try:
+        raw_hooks.batch_restore(batch)
+    except Exception:
+        pass
+    try:
         restore_render_output_state(
             batch.scene,
             getattr(batch, "_output_state", None),
@@ -3472,7 +3492,9 @@ def _sr_begin_render_batch(context, reporter):
     if not progress.is_active():
         progress.begin(
             BUILD_WORKFLOW_LABELS.get(workflow, "Render Images"),
-            BUILD_WORKFLOW_STAGES.get(workflow, (PHASE_RENDER, PHASE_FILES)),
+            _sr_workflow_stages(
+                batch.scene, workflow, (PHASE_RENDER, PHASE_FILES)
+            ),
         )
     progress.set_stage(PHASE_RENDER)
     progress.update(message=f"Preparing {batch._n} image(s)")
@@ -5749,6 +5771,9 @@ def _sr_prepare_versioned_dataset(context, cfg, reuse_images=True):
             # its geometry-derived mask and any explicitly requested GT data.
             item.render_state = 'PENDING'
             continue
+        # Raw files are optional here: whatever is missing is rendered by
+        # the raw stage, so a reused view never needs a legacy re-render.
+        raw_hooks.copy_view(previous, target, frame_index)
         carried = {
             "name": name,
             "file_path": f"./{target_relative}",
@@ -5876,8 +5901,14 @@ def _sr_continue_dataset_generation(context):
         "Rendering Images complete: images, cameras.txt and images.txt are "
         "up to date. Next: Point Cloud."
     )
+    finished = "Images and camera data are up to date"
+    if (raw_stage.should_run(context.scene, cfg.build_workflow)
+            and raw_stage.start(context, _sr_effective_output_path(cfg),
+                                finished_message=finished)):
+        _tag_redraw_sceneray_splat(context)
+        return result
     cfg.build_workflow = 'NONE'
-    progress.end("Images and camera data are up to date")
+    progress.end(finished)
     _tag_redraw_sceneray_splat(context)
     return result
 
@@ -7112,7 +7143,7 @@ class SCENERAY_SPLAT_OT_generate_points3d(bpy.types.Operator):
         if not progress.is_active():
             progress.begin(
                 BUILD_WORKFLOW_LABELS.get(workflow, "Generate Point Cloud"),
-                BUILD_WORKFLOW_STAGES.get(workflow, (PHASE_POINTS,)),
+                _sr_workflow_stages(cfg.id_data, workflow, (PHASE_POINTS,)),
             )
         progress.set_stage(PHASE_POINTS)
         progress.update(fraction=0.0, message=cfg.point_status)
@@ -7170,9 +7201,10 @@ class SCENERAY_SPLAT_OT_generate_points3d(bpy.types.Operator):
             self.report({'ERROR'}, self.cfg.point_status)
             return {'CANCELLED'}
 
-    def _cleanup(self, context):
+    def _cleanup(self, context, end_progress=True):
         self.cfg.build_workflow = 'NONE'
-        progress.end(self.cfg.point_status)
+        if end_progress:
+            progress.end(self.cfg.point_status)
         if getattr(self, "_timer", None) is not None:
             context.window_manager.event_timer_remove(self._timer)
             self._timer = None
@@ -7297,12 +7329,17 @@ class SCENERAY_SPLAT_OT_generate_points3d(bpy.types.Operator):
             self.report({'INFO'}, self.cfg.point_status)
         # _cleanup clears build_workflow, so what to do next is read first.
         workflow = str(getattr(self.cfg, "build_workflow", ""))
-        self._cleanup(context)
+        follow_raw = raw_stage.should_run(context.scene, workflow)
+        self._cleanup(context, end_progress=not follow_raw)
 
-        # The point cloud is the last phase of every workflow now: it takes
-        # its colour from images that have already been rendered, so there is
-        # nothing left to hand on to.
+        # The point cloud is the last legacy phase. Build Dataset then hands
+        # on to the raw export, which never modifies the legacy files.
         self.cfg.build_workflow = 'NONE'
+        if follow_raw and raw_stage.start(
+                context, self.output_dir,
+                finished_message=self.cfg.point_status):
+            _tag_redraw_sceneray_splat(context)
+            return {'FINISHED'}
         progress.end(self.cfg.point_status)
         _tag_redraw_sceneray_splat(context)
         return {'FINISHED'}
@@ -8124,6 +8161,8 @@ def _sr_block_manual_render(scene, _depsgraph=None):
     # the dataset build drives Blender's renderer to make its images.
     cfg = getattr(scene, "SCENERAY_SPLAT", None)
     if _render_job_state.get("owner") is not None:
+        return
+    if raw_stage.is_running():
         return
     if cfg is not None and cfg.is_rendering:
         return

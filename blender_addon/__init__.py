@@ -35,6 +35,7 @@ if "icons" in locals():
     reload(progress)
     reload(sceneray_splat)
     reload(building_data)
+    reload(raw_export)
     reload(auto_rig)
 else:
     from . import icons
@@ -44,6 +45,7 @@ else:
     from . import progress
     from . import sceneray_splat
     from . import building_data
+    from . import raw_export
     from . import auto_rig
 
 import bpy
@@ -70,7 +72,8 @@ def register():
 
     # Undo even a partially registered module on failure. Otherwise Blender
     # leaves working panel classes behind with missing settings/operators.
-    steps = [icons, diagnostics, progress, sceneray_splat, building_data, auto_rig]
+    steps = [icons, diagnostics, progress, sceneray_splat, building_data,
+             raw_export, auto_rig]
     attempted = []
     try:
         for module in steps:
@@ -92,6 +95,7 @@ def unregister():
     from . import camera_overlay
     camera_overlay.disable()
     auto_rig.unregister()
+    raw_export.unregister()
     building_data.unregister()
     sceneray_splat.unregister()
     progress.unregister()

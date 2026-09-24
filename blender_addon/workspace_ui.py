@@ -186,6 +186,9 @@ def draw_dataset_settings(layout, context):
     if not sr.point_settings_are_default(cfg):
         theme.operator(body, 'sceneray_splat.point_defaults', text='Reset sampling', icon='LOOP_BACK')
     ui._draw_point_estimate(body, cfg)
+    layout.separator(factor=.8)
+    from .raw_export import ui as raw_ui
+    raw_ui.draw_settings(layout, context, busy)
 
 
 def draw_camera_tools(layout, context):
