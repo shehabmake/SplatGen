@@ -1,0 +1,303 @@
+{
+  "format": "sceneray_splat-rig",
+  "version": 3,
+  "name": "Box 360",
+  "description": "6 views from one center \u00b7 sides, up and down",
+  "units": "METERS",
+  "origin": [
+    0,
+    0,
+    0
+  ],
+  "cameras": [
+    {
+      "source_name": "Box Right",
+      "location": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0.4999999701976776,
+        0.4999999701976776,
+        -0.4999999701976776,
+        -0.4999999701976776
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "matrix_world": [
+        1.1920928244535389e-07,
+        0.0,
+        -0.9999998807907104,
+        0.0,
+        -0.9999998807907104,
+        1.1920928244535389e-07,
+        0.0,
+        0.0,
+        0.0,
+        0.9999998807907104,
+        1.1920928244535389e-07,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "lens": 15.10379336119104,
+      "lens_unit": "MILLIMETERS",
+      "sensor_width": 36,
+      "sensor_height": 36,
+      "sensor_fit": "VERTICAL",
+      "camera_type": "PERSP",
+      "shift_x": 0,
+      "shift_y": 0,
+      "clip_start": 0.01,
+      "clip_end": 1000,
+      "display_size": 0.15
+    },
+    {
+      "source_name": "Box Left",
+      "location": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0.4999999701976776,
+        0.4999999701976776,
+        0.4999999701976776,
+        0.4999999701976776
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "matrix_world": [
+        1.1920928244535389e-07,
+        0.0,
+        0.9999998807907104,
+        0.0,
+        0.9999998807907104,
+        1.1920928244535389e-07,
+        0.0,
+        0.0,
+        0.0,
+        0.9999998807907104,
+        1.1920928244535389e-07,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "lens": 15.10379336119104,
+      "lens_unit": "MILLIMETERS",
+      "sensor_width": 36,
+      "sensor_height": 36,
+      "sensor_fit": "VERTICAL",
+      "camera_type": "PERSP",
+      "shift_x": 0,
+      "shift_y": 0,
+      "clip_start": 0.01,
+      "clip_end": 1000,
+      "display_size": 0.15
+    },
+    {
+      "source_name": "Box Front",
+      "location": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        -3.0908619663705394e-08,
+        3.0908619663705394e-08,
+        -0.7071067690849304,
+        -0.7071067690849304
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "matrix_world": [
+        -0.9999999403953552,
+        -8.742277657347586e-08,
+        0.0,
+        0.0,
+        0.0,
+        3.4228538225988814e-08,
+        0.9999999403953552,
+        0.0,
+        -8.742277657347586e-08,
+        0.9999999403953552,
+        3.4228538225988814e-08,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "lens": 15.10379336119104,
+      "lens_unit": "MILLIMETERS",
+      "sensor_width": 36,
+      "sensor_height": 36,
+      "sensor_fit": "VERTICAL",
+      "camera_type": "PERSP",
+      "shift_x": 0,
+      "shift_y": 0,
+      "clip_start": 0.01,
+      "clip_end": 1000,
+      "display_size": 0.15
+    },
+    {
+      "source_name": "Box Back",
+      "location": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0.7071067690849304,
+        0.7071067690849304,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "matrix_world": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        3.422854177870249e-08,
+        -0.9999999403953552,
+        0.0,
+        0.0,
+        0.9999999403953552,
+        3.422854177870249e-08,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "lens": 15.10379336119104,
+      "lens_unit": "MILLIMETERS",
+      "sensor_width": 36,
+      "sensor_height": 36,
+      "sensor_fit": "VERTICAL",
+      "camera_type": "PERSP",
+      "shift_x": 0,
+      "shift_y": 0,
+      "clip_start": 0.01,
+      "clip_end": 1000,
+      "display_size": 0.15
+    },
+    {
+      "source_name": "Box Up",
+      "location": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        1.910685465164705e-15,
+        -4.371138828673793e-08,
+        -1.0,
+        4.371138828673793e-08
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "matrix_world": [
+        -1.0,
+        8.742277657347586e-08,
+        -7.64274186065882e-15,
+        0.0,
+        8.742277657347586e-08,
+        1.0,
+        -8.742277657347586e-08,
+        0.0,
+        -1.57852960400897e-24,
+        -8.742277657347586e-08,
+        -1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "lens": 15.10379336119104,
+      "lens_unit": "MILLIMETERS",
+      "sensor_width": 36,
+      "sensor_height": 36,
+      "sensor_fit": "VERTICAL",
+      "camera_type": "PERSP",
+      "shift_x": 0,
+      "shift_y": 0,
+      "clip_start": 0.01,
+      "clip_end": 1000,
+      "display_size": 0.15
+    },
+    {
+      "source_name": "Box Down",
+      "location": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "matrix_world": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "lens": 15.10379336119104,
+      "lens_unit": "MILLIMETERS",
+      "sensor_width": 36,
+      "sensor_height": 36,
+      "sensor_fit": "VERTICAL",
+      "camera_type": "PERSP",
+      "shift_x": 0,
+      "shift_y": 0,
+      "clip_start": 0.01,
+      "clip_end": 1000,
+      "display_size": 0.15
+    }
+  ],
+  "sources": []
+}

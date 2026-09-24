@@ -1,0 +1,253 @@
+{
+  "palette": {
+    "orange": {
+      "hex": "#FF5701",
+      "saturation": 0.9961
+    },
+    "blue": {
+      "hex": "#043BFD",
+      "saturation": 0.9842
+    },
+    "lime": {
+      "hex": "#E1FF01",
+      "saturation": 0.9961
+    },
+    "green": {
+      "hex": "#6CFF27",
+      "saturation": 0.8471
+    },
+    "red": {
+      "hex": "#D3331A",
+      "saturation": 0.8768
+    }
+  },
+  "single_colour_edges": {
+    "stage_cameras": {
+      "partial_alpha_pixels": 855,
+      "all_visible_rgb_matches_fill": true
+    },
+    "action_train": {
+      "partial_alpha_pixels": 285,
+      "all_visible_rgb_matches_fill": true
+    },
+    "status_error": {
+      "partial_alpha_pixels": 1107,
+      "all_visible_rgb_matches_fill": true
+    },
+    "viewer_relight": {
+      "partial_alpha_pixels": 1046,
+      "all_visible_rgb_matches_fill": true
+    }
+  },
+  "identity_sha256": {
+    "splatgen_logo.png": "694b19823f291599390b61c46907153ea4956912d503acca17cc33ff76172b45",
+    "splatgen.ico": "e480617ba0ab67673f468bdfffe1151bc9339f76d4990059feaf2445b42f657c"
+  },
+  "exact_palette_icons": {
+    "stage_project": [
+      "#E6E8EC"
+    ],
+    "stage_cameras": [
+      "#E6E8EC"
+    ],
+    "stage_dataset": [
+      "#E6E8EC"
+    ],
+    "stage_points": [
+      "#E6E8EC"
+    ],
+    "stage_training": [
+      "#E6E8EC"
+    ],
+    "stage_viewer": [
+      "#E6E8EC"
+    ],
+    "stage_export": [
+      "#E6E8EC"
+    ],
+    "camera_pending": [
+      "#E6E8EC"
+    ],
+    "camera_rendered": [
+      "#E6E8EC"
+    ],
+    "action_build": [
+      "#6CFF27"
+    ],
+    "action_train": [
+      "#6CFF27"
+    ],
+    "action_import": [
+      "#E6E8EC"
+    ],
+    "action_export": [
+      "#6CFF27"
+    ],
+    "action_save": [
+      "#E1FF01"
+    ],
+    "action_pause": [
+      "#E1FF01"
+    ],
+    "action_stop": [
+      "#D3331A"
+    ],
+    "action_resume": [
+      "#6CFF27"
+    ],
+    "action_add": [
+      "#E6E8EC"
+    ],
+    "action_remove": [
+      "#D3331A"
+    ],
+    "action_frame": [
+      "#E6E8EC"
+    ],
+    "ui_settings": [
+      "#E6E8EC"
+    ],
+    "ui_help": [
+      "#E6E8EC"
+    ],
+    "ui_search": [
+      "#E6E8EC"
+    ],
+    "ui_changed": [
+      "#E6E8EC"
+    ],
+    "ui_reset": [
+      "#E6E8EC"
+    ],
+    "ui_save": [
+      "#E6E8EC"
+    ],
+    "status_active": [
+      "#E6E8EC"
+    ],
+    "status_ok": [
+      "#6CFF27"
+    ],
+    "status_wait": [
+      "#E1FF01"
+    ],
+    "status_error": [
+      "#D3331A"
+    ],
+    "status_idle": [
+      "#E6E8EC"
+    ],
+    "badge_new": [
+      "#E1FF01"
+    ],
+    "layer_splats": [
+      "#E6E8EC"
+    ],
+    "layer_coverage": [
+      "#E6E8EC"
+    ],
+    "layer_scene": [
+      "#E6E8EC"
+    ],
+    "viewer_relight": [
+      "#E6E8EC"
+    ],
+    "method_auto_rig": [
+      "#E6E8EC"
+    ],
+    "method_blob": [
+      "#E6E8EC"
+    ],
+    "ui_bug": [
+      "#E6E8EC"
+    ],
+    "action_open_folder": [
+      "#E6E8EC"
+    ],
+    "action_calculate": [
+      "#6CFF27"
+    ],
+    "action_coverage": [
+      "#6CFF27"
+    ],
+    "coverage_fair": [
+      "#E1FF01"
+    ],
+    "coverage_weak": [
+      "#FF5701"
+    ],
+    "section_cameras": [
+      "#FF5701"
+    ],
+    "section_coverage": [
+      "#E1FF01"
+    ],
+    "section_dataset": [
+      "#6CFF27"
+    ],
+    "action_close": [
+      "#D3331A"
+    ],
+    "action_delete": [
+      "#D3331A"
+    ],
+    "action_hide": [
+      "#D3331A"
+    ]
+  },
+  "neutral_icons": [
+    "action_add",
+    "action_frame",
+    "action_import",
+    "action_open_folder",
+    "camera_pending",
+    "camera_rendered",
+    "layer_coverage",
+    "layer_scene",
+    "layer_splats",
+    "method_auto_rig",
+    "method_blob",
+    "stage_cameras",
+    "stage_dataset",
+    "stage_export",
+    "stage_points",
+    "stage_project",
+    "stage_training",
+    "stage_viewer",
+    "status_active",
+    "status_idle",
+    "ui_bug",
+    "ui_changed",
+    "ui_help",
+    "ui_reset",
+    "ui_save",
+    "ui_search",
+    "ui_settings",
+    "viewer_relight"
+  ],
+  "accent_icons": [
+    "action_build",
+    "action_calculate",
+    "action_close",
+    "action_coverage",
+    "action_delete",
+    "action_export",
+    "action_hide",
+    "action_pause",
+    "action_remove",
+    "action_resume",
+    "action_save",
+    "action_stop",
+    "action_train",
+    "badge_new",
+    "coverage_fair",
+    "coverage_weak",
+    "section_cameras",
+    "section_coverage",
+    "section_dataset",
+    "status_error",
+    "status_ok",
+    "status_wait"
+  ],
+  "neutral_color": "#E6E8EC"
+}

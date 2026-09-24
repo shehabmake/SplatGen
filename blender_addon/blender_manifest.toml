@@ -1,0 +1,31 @@
+schema_version = "1.0.0"
+
+id = "splatgen_prepare"
+version = "5.3.0"
+name = "SplatGen Prepare"
+tagline = "Place cameras and build datasets"
+maintainer = "JELLY FISH STUDIO <shehabmekkyb010@gmail.com>"
+website = "https://discord.gg/NJ2wCsn8GG"
+copyright = [
+  "2026 shehab mekky",
+]
+type = "add-on"
+
+blender_version_min = "5.3.0"
+blender_version_max = "5.4.0"
+platforms = ["windows-x64"]
+
+license = [
+  "SPDX:GPL-3.0-or-later",
+]
+
+[permissions]
+files = "Read camera rigs and create image, camera and point datasets"
+
+[build]
+paths_exclude_pattern = [
+  "__pycache__/",
+  "/.git/",
+  "/*.zip",
+  "/wheels/",
+]

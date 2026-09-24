@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="12.000,3.000 22.000,21.000 2.000,21.000 12.000,3.000" stroke="#D3331A" stroke-width="2.1"/>
+<polyline points="12.000,9.000 12.000,14.000" stroke="#D3331A" stroke-width="2.3"/>
+<circle cx="12" cy="18" r="0.9" fill="#D3331A"/>
+</svg>
