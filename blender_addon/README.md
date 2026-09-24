@@ -1,4 +1,4 @@
-# SplatGen Prepare 5.3
+# SplatGen Prepare 5.3.1
 
 A preparation-only derivative of SplatGen Pro 5.3 pointcloud, for Blender 5.3.x
 on Windows x64. Only camera placement and dataset building are available.
@@ -25,6 +25,24 @@ Camera preview and coverage overlays remain because they help place cameras.
 There is no Gaussian-splat viewer, dataset point-cloud display, splat import/export,
 trainer, training method selector, runtime activation or bundled GPU runtime.
 The old Dataset preview popover was removed along with the viewer implementation.
+
+## Raw data export (5.3.1)
+
+Every build also writes `Dataset(Raw)` next to `Dataset(Default)`: the beauty
+render and its full Cycles lighting split, a clay (lighting-only) render,
+position/depth/normal/true-normal/UV/object-coordinate/pointiness/backfacing/AO,
+per-pixel material parameters read from each material's shader inputs, object
+and material ids, motion vectors, the noisy image and denoising albedo/normal,
+`cameras.json` plus a COLMAP copy, a world-space scene mesh (PLY), collision
+voxels, a world/HDRI panorama and reflection-probe panoramas, and
+`scene_description.json` + `manifest.json`.
+
+The legacy `Dataset(Default)` and `sg_metadata` output is unchanged. Beauty
+passes come from the same render as the legacy image; the other renders run
+after the point cloud. Settings are under Dataset settings > Raw data, where
+**Export raw data for this build** also upgrades an existing build, rendering
+only what is missing. The format is documented in `docs/RAW_DATASET.md` of the
+SplatGen repository.
 
 The point cloud is dataset input; generating it does not train Gaussian splats.
 References to training images in dataset fields describe the files' intended use

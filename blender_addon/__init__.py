@@ -60,7 +60,7 @@ bl_info = {
     "description": "Place cameras and build image, camera and point-cloud datasets.",
     "author": "JELLY FISH STUDIO <shehabmekkyb010@gmail.com>",
     "blender": (5, 3, 0),
-    "version": (5, 3, 0),
+    "version": (5, 3, 1),
     "support": "COMMUNITY",
     "category": "Scene",
     "location": "Scene Properties > SplatGen or 3D View > Sidebar > SplatGen",

@@ -82,7 +82,7 @@ POLICY_HALF = "half"
 
 
 def _pass(key, folder, source, sockets, item, *, group, label, flags=(),
-          aov=None, policy=POLICY_FLOAT, space="", description=""):
+          aov=None, policy=POLICY_FLOAT, space="", description="", exact=False):
     return {
         "key": key,
         "folder": folder,
@@ -99,6 +99,8 @@ def _pass(key, folder, source, sockets, item, *, group, label, flags=(),
         # (aov_name, "COLOR"|"VALUE") for shader AOV passes.
         "aov": aov,
         "policy": policy,
+        # Always stored losslessly, whatever the data compression setting.
+        "exact": exact,
         "space": space,
         "description": description,
     }
@@ -170,7 +172,7 @@ _register(
           description="World-space position of the first visible surface."),
     _pass("depth", f"{GEOMETRY}/depth", BEAUTY, ("Depth", "Z"), "FLOAT",
           group="geometry", label="Depth", flags=((_L, "use_pass_z"),),
-          space="camera-space planar Z distance; background = 1e10",
+          space="camera-space planar Z distance; background = 1e10", exact=True,
           description="Metric camera depth, identical to legacy Dataset(Default)/depth."),
     _pass("normal", f"{GEOMETRY}/normal", BEAUTY, ("Normal",), "VECTOR",
           group="geometry", label="Normal", flags=((_L, "use_pass_normal"),),
@@ -248,11 +250,13 @@ _register(
           "FLOAT", group="ids", label="Object ID",
           flags=((_L, "use_pass_object_index"),),
           space="integer id stored as float; 0 = background; see ids/id_map.json",
+          exact=True,
           description="Per-pixel object id (not anti-aliased)."),
     _pass("material_id", f"{IDS}/material_id", BEAUTY,
           ("Material Index", "IndexMA"), "FLOAT", group="ids",
           label="Material ID", flags=((_L, "use_pass_material_index"),),
           space="integer id stored as float; 0 = none; see ids/id_map.json",
+          exact=True,
           description="Per-pixel material id (not anti-aliased)."),
 )
 
@@ -261,7 +265,7 @@ _register(
     _pass("motion_vector", f"{MOTION}/motion_vector", BEAUTY, ("Vector",),
           "RGBA", group="motion", label="Motion Vectors",
           flags=((_L, "use_pass_vector"),),
-          space="pixels; RG = to previous frame, BA = to next frame",
+          space="pixels; RG = to previous frame, BA = to next frame", exact=True,
           description="Scene motion at the current frame (zero for static scenes)."),
     _pass("noisy_image", f"{MOTION}/noisy_image", BEAUTY, ("Noisy Image",),
           "RGBA", group="motion", label="Noisy Image",

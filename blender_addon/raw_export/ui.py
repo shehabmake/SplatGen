@@ -87,6 +87,7 @@ def draw_settings(layout_, context, busy):
     column.use_property_decorate = False
     column.prop(raw, "appearance_precision", text="Color precision")
     column.prop(raw, "appearance_codec", text="Color compression")
+    column.prop(raw, "data_codec", text="Data compression")
     column.prop(raw, "aux_samples")
     if raw.world:
         column.prop(raw, "world_resolution")
@@ -95,6 +96,10 @@ def draw_settings(layout_, context, busy):
         column.prop(raw, "probe_count")
     if raw.collision_voxels:
         column.prop(raw, "voxel_resolution")
+    engine = context.scene.render.engine
+    if engine != "CYCLES":
+        theme.status(body, f"Render engine is {engine}: the lighting split, pointiness "
+                     "and denoising passes need Cycles.", state=theme.STATUS_WAIT)
     theme.message(body, "Written to Dataset(Raw) beside the unchanged legacy dataset.")
     row = body.row()
     theme.operator(row, SPLATGEN_OT_export_raw_data.bl_idname,

@@ -65,11 +65,22 @@ def collect_scene_mesh(scene, view_layer, depsgraph, id_map=None):
     table = []
     offset = 0
     tri_offset = 0
+    # Curves, text and similar objects evaluate to a mesh that the depsgraph
+    # lists as an instance parented to the object itself. Take that mesh and
+    # skip the object's own entry, or its triangles would appear twice.
+    realized = set()
+    for instance in depsgraph.object_instances:
+        if instance.is_instance and instance.parent is not None:
+            parent = getattr(instance.parent, "original", instance.parent)
+            if parent.type in _MESHLIKE and parent.type != "MESH":
+                realized.add(parent.name_full)
     for instance in depsgraph.object_instances:
         evaluated = instance.object
         if evaluated.type not in _MESHLIKE:
             continue
         original = getattr(evaluated, "original", evaluated)
+        if not instance.is_instance and original.name_full in realized:
+            continue
         if instance.is_instance:
             parent = getattr(instance, "parent", None)
             parent = getattr(parent, "original", parent)

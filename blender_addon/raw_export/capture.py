@@ -691,7 +691,8 @@ def exr_settings(raw, definition):
     if policy == layout.POLICY_APPEARANCE:
         depth = "32" if raw.appearance_precision == "FLOAT" else "16"
         return depth, raw.appearance_codec
-    return ("16" if policy == layout.POLICY_HALF else "32"), "ZIP"
+    codec = "ZIP" if definition.get("exact") else raw.data_codec
+    return ("16" if policy == layout.POLICY_HALF else "32"), codec
 
 
 def selected_passes(raw, source):

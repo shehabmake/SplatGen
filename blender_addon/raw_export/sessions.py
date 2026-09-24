@@ -122,8 +122,9 @@ def begin_beauty(scene, view_layer, root, *, own_tree, resolution=None):
         if raw.ids:
             session.id_map = capture.assign_ids(session, objects, materials, existing)
         else:
-            session.id_map = existing or capture.plan_ids(objects, materials)
-            session.id_map["mode"] = session.id_map.get("mode", "planned")
+            # Not rendered, but the scene mesh and description still use ids.
+            session.id_map = capture.plan_ids(objects, materials, existing)
+            session.id_map["mode"] = "planned"
         write_json(Path(root) / layout.ID_MAP, session.id_map)
         if own_tree:
             session.use_own_tree()

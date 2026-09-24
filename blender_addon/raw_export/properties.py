@@ -111,6 +111,18 @@ class SplatGenRawSettings(PropertyGroup):
         ],
         default="ZIP",
     )
+    data_codec: EnumProperty(
+        name="Data Compression",
+        description="EXR compression of geometry, material and denoising data "
+                    "passes. Depth and ids are always stored exactly",
+        items=[
+            ("ZIP", "ZIP (lossless)", "Exact float32 values"),
+            ("PXR24", "PXR24 (near-lossless)", "Float32 rounded to 24 bits "
+             "(about 5 significant digits) before lossless compression; "
+             "roughly half the size for position, UV and object coordinates"),
+        ],
+        default="ZIP",
+    )
     # -- auxiliary renders -------------------------------------------------
     aux_samples: IntProperty(
         name="Auxiliary Samples",

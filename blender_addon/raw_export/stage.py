@@ -41,7 +41,7 @@ from . import geometry, layout, metadata, properties, sessions
 
 PHASE = "Export Raw Data"
 
-_runtime = {"stage": None, "timer": False}
+_runtime = {"stage": None}
 _job = {"waiting": False, "started": False, "complete": False,
         "cancelled": False, "launched": 0.0, "idle_since": None}
 
@@ -393,6 +393,10 @@ class RawStage:
             state = _poll_render(self)
             if state == "wait":
                 return 0.1
+            if state == "cancelled":
+                # Escape on a render stops the stage, as in the legacy batch.
+                from .. import sceneray_splat
+                sceneray_splat._cancel_flag["requested"] = True
             self._complete_item(state == "complete")
             return 0.05
         if self.cancel_requested():
@@ -420,6 +424,8 @@ class RawStage:
                 self.issues.append(f"{step.name}: could not prepare ({exc})")
                 self.session, self.items = None, []
             self.item_index = 0
+            if self.session is not None:
+                _log(f"{step.name}: {len(self.items)} render(s)")
             if not self.items:
                 self._teardown(step)
                 return 0.05
@@ -603,18 +609,28 @@ def _restore_render_display(stage):
 
 
 def _timer():
+    from .. import sceneray_splat
+
     stage = _runtime["stage"]
     if stage is None:
-        _runtime["timer"] = False
         return None
+    # Timers run without a window; give every step the same context an
+    # operator would have, as the legacy dataset continuation does.
+    window, area, region = sceneray_splat._sr_live_window_context(stage.window_pointer)
+    override = {"scene": stage.scene, "view_layer": stage.view_layer}
+    if window is not None:
+        override.update({"window": window, "screen": window.screen})
+    if area is not None:
+        override["area"] = area
+    if region is not None:
+        override["region"] = region
     try:
-        delay = stage.tick(background=False)
+        with bpy.context.temp_override(**override):
+            delay = stage.tick(background=False)
     except Exception as exc:
         traceback.print_exc()
         stage._end(error=str(exc))
         delay = None
-    if delay is None:
-        _runtime["timer"] = False
     return delay
 
 
@@ -660,8 +676,7 @@ def start(context, build, finished_message=""):
     except (AttributeError, ReferenceError):
         stage.window_pointer = None
     _hide_render_display(stage)
-    if not _runtime["timer"]:
-        _runtime["timer"] = True
+    if not bpy.app.timers.is_registered(_timer):
         bpy.app.timers.register(_timer, first_interval=0.05)
     return True
 
@@ -715,7 +730,6 @@ def unregister():
             bpy.app.timers.unregister(_timer)
     except (ReferenceError, RuntimeError, ValueError):
         pass
-    _runtime["timer"] = False
     for name, handler in _HANDLERS:
         collection = getattr(bpy.app.handlers, name)
         try:
