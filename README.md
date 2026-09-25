@@ -12,6 +12,7 @@ exact cameras, geometry, materials and lighting — and hands it to a trainer.
 | `trainer/` | **SplatGen trainer** app: trains Gaussian splats from those datasets, with a local web UI, live monitor and 3D viewer. See `trainer/README.md`. |
 | `docs/RAW_DATASET.md` | The `Dataset(Raw)` format: the contract between the add-on and the trainer. |
 | `tools/build_addon_zip.py` | Packages `blender_addon/` into an installable zip in `dist/`. |
+| `tools/build_trainer_zip.py` | Packages the trainer app plus the add-on zip into one download in `dist/`. |
 
 
 ## Training splats

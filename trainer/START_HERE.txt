@@ -1,0 +1,25 @@
+SplatGen trainer - quick start (Windows, NVIDIA GPU)
+====================================================
+
+1. Unzip this folder somewhere with a short path, e.g. C:\SplatGen
+   (not inside Program Files, and not directly in the zip viewer).
+
+2. Double-click  install_windows.bat  (once).
+   It finds or installs Python 3.11, then downloads PyTorch with CUDA
+   and gsplat (about 3 GB). Takes 5-15 minutes.
+
+3. Double-click  SplatGen.bat  whenever you want to use the app.
+   Your browser opens SplatGen. Keep the black window open while you
+   work; close it to quit.
+
+4. In the app: Open dataset -> choose the timestamped folder the Blender
+   add-on wrote (the one containing Dataset(Default)) -> Train.
+
+The "Blender add-on" folder contains the matching SplatGen Prepare add-on
+zip: install it in Blender 5.3 via Preferences > Add-ons > Install from Disk.
+
+No NVIDIA GPU? The app still runs, using a much slower renderer that is only
+practical for small scenes (use the Preview preset at 1/4 resolution).
+
+If something fails, copy the text from the black window and send it over.
+More details: README.md
