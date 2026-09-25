@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "splatgen"
-version = "0.1.0"
+version = "0.2.0.dev0"
 description = "SplatGen: train Gaussian splats from 3D-software datasets"
 readme = "README.md"
 requires-python = ">=3.10"

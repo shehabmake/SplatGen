@@ -31,12 +31,17 @@ def main():
             info = zipfile.ZipInfo.from_file(path, f"{top}/{relative.as_posix()}")
             if path.suffix == ".sh":
                 info.external_attr = 0o755 << 16
-            with open(path, "rb") as handle:
-                archive.writestr(info, handle.read(), zipfile.ZIP_DEFLATED)
+            data = path.read_bytes()
+            if relative.as_posix() == "README.md":
+                # docs/ sits next to the README in the download, one level up in the repo
+                data = data.replace(b"../docs/", b"docs/")
+            archive.writestr(info, data, zipfile.ZIP_DEFLATED)
             count += 1
         archive.write(addon, f"{top}/Blender add-on/{addon.name}")
-        archive.write(REPO / "docs" / "RAW_DATASET.md", f"{top}/docs/RAW_DATASET.md")
-    print(f"{target.relative_to(REPO)}: {count + 2} files, {target.stat().st_size / 1e6:.1f} MB")
+        docs = ("RAW_DATASET.md", "CONSTRUCT.md")
+        for name in docs:
+            archive.write(REPO / "docs" / name, f"{top}/docs/{name}")
+    print(f"{target.relative_to(REPO)}: {count + 1 + len(docs)} files, {target.stat().st_size / 1e6:.1f} MB")
 
 
 if __name__ == "__main__":
