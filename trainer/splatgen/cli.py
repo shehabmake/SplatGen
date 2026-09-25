@@ -1,4 +1,4 @@
-"""Command line: ``splatgen [app|train|export|info] ...``."""
+"""Command line: ``splatgen [app|train|build|export|info] ...``."""
 
 import argparse
 import json
@@ -100,6 +100,39 @@ def cmd_train(args):
     return 0
 
 
+def cmd_build(args):
+    from .construct import ConstructConfig, build_splats
+    from .construct.builder import polish_config
+    from .data import load_scene
+    from .train.trainer import Trainer
+
+    config = ConstructConfig.from_dict(_parse_overrides(args.set))
+    out = Path(args.out or f"splatgen_build_{time.strftime('%Y%m%d-%H%M%S')}")
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "construct_config.json").write_text(json.dumps(config.to_dict(), indent=2))
+    builder, report = build_splats(args.dataset, config, out, formats=("ply", "splat"))
+    for path in report["files"].values():
+        print("wrote", path)
+    if not args.polish:
+        return 0
+    train_config = polish_config(args.polish, report["files"]["ply"], config.test_every,
+                                 _parse_overrides(args.polish_set))
+    print(f"polishing for {train_config.steps:,} steps")
+    trainer = Trainer(load_scene(args.dataset), train_config, out)
+    trainer.setup()
+    try:
+        trainer.run()
+    except KeyboardInterrupt:
+        print("Interrupted; saving what was polished so far.")
+    results = trainer.evaluate()
+    if results:
+        print(f"test views after polish: PSNR {results['psnr']:.2f}  SSIM {results['ssim']:.4f}")
+    trainer.save_checkpoint(out / "checkpoint.pt")
+    for fmt in train_config.export_formats:
+        print("wrote", trainer.export(fmt, out / f"polished.{fmt}"))
+    return 0
+
+
 def cmd_export(args):
     import torch
 
@@ -145,6 +178,15 @@ def main(argv=None):
     train.add_argument("--resume", help="checkpoint.pt to continue from")
     train.add_argument("--set", nargs="*", metavar="KEY=VALUE", help="override config fields")
     train.set_defaults(func=cmd_train)
+
+    build = sub.add_parser("build", help="build splats directly from the raw dataset (no training)")
+    build.add_argument("dataset", help="the build folder, Dataset(Raw) or Dataset(Default)")
+    build.add_argument("--out")
+    build.add_argument("--set", nargs="*", metavar="KEY=VALUE", help="override construct settings")
+    build.add_argument("--polish", type=int, default=0, metavar="STEPS",
+                       help="then train this many steps starting from the built splats")
+    build.add_argument("--polish-set", nargs="*", metavar="KEY=VALUE", help="override polish training settings")
+    build.set_defaults(func=cmd_build)
 
     export = sub.add_parser("export", help="convert a checkpoint or PLY")
     export.add_argument("source")

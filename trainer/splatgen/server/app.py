@@ -16,6 +16,7 @@ from PIL import Image
 
 from .. import __version__, render, settings
 from ..config import PRESETS, TrainConfig, preset_config
+from ..construct import ConstructConfig
 from ..data import legacy, load_scene
 from ..io import FORMATS, export_model, read_ply, write_ply, write_splat
 from ..model import GaussianModel
@@ -79,6 +80,26 @@ def _default_run_name(scene):
         return project[len("SplatGen_"):] if project.startswith("SplatGen_") else project
     root = Path(scene.root)
     return root.parent.name if root.name.lower() in {"sparse", "0"} else root.name
+
+
+METHODS = {
+    "train": {"label": "Train", "description": "Standard 3D Gaussian Splatting from the images."},
+    "construct": {"label": "Build from raw data",
+                  "description": "No training: splats placed on the surface and coloured directly "
+                                 "from the raw passes. Seconds to minutes."},
+    "construct_train": {"label": "Build + polish",
+                        "description": "Build from raw data, then a short training run to polish."},
+}
+
+
+def _raw_root(scene, path):
+    from ..data import raw
+    for candidate in (scene.extras.get("build_folder"), path):
+        if candidate:
+            found = raw.find_root(candidate)
+            if found is not None:
+                return found
+    return None
 
 
 def _png(array):
@@ -235,7 +256,8 @@ def create_app(runs_dir=None):
     def presets():
         return {"presets": {name: {**p, "values": preset_config(name).to_dict()}
                             for name, p in PRESETS.items()},
-                "defaults": TrainConfig().to_dict(), "formats": FORMATS}
+                "defaults": TrainConfig().to_dict(), "formats": FORMATS,
+                "construct": ConstructConfig().to_dict(), "methods": METHODS}
 
     @app.get("/api/runs")
     def runs():
@@ -255,10 +277,22 @@ def create_app(runs_dir=None):
         if state["jobs"].busy():
             raise HTTPException(409, "A training run is already in progress")
         preset = data.get("preset", "standard")
+        method = data.get("method", "train")
+        if method not in METHODS:
+            raise HTTPException(400, "Unknown method")
         config = preset_config(preset if preset in PRESETS else "standard", data.get("config") or {})
         name = data.get("name") or _default_run_name(scene)
-        record = store().create(name, path, config.to_dict())
-        store().update(record["id"], preset=preset)
+        extra = {"preset": preset, "method": method}
+        if method != "train":
+            raw = _raw_root(scene, path)
+            if raw is None:
+                raise HTTPException(400, "This dataset has no Dataset(Raw) folder. Export it with the raw "
+                                         "data option in the Blender add-on to build splats directly.")
+            construct = ConstructConfig.from_dict(data.get("construct") or {})
+            construct.test_every = config.test_every
+            extra.update(raw_dataset=str(raw), construct=construct.to_dict())
+        record = store().create(name, path, config.to_dict(), kind="training" if method == "train" else "construct")
+        store().update(record["id"], **extra)
         state["jobs"].start(record["id"])
         return store().get(record["id"])
 
@@ -294,7 +328,18 @@ def create_app(runs_dir=None):
             job.resume_training()
             return {"ok": True}
         record = run_or_404(run_id)
-        if not (store().path(run_id) / "checkpoint.pt").is_file():
+        folder = store().path(run_id)
+        if not (folder / "checkpoint.pt").is_file() and (folder / "constructed.ply").is_file():
+            # A finished build: polish it with a short training run.
+            config = dict(record["config"])
+            config["steps"] = int(data.get("extra_steps") or 0) or 2000
+            store().update(run_id, config=config, method="construct_train", status="queued", error="")
+            try:
+                state["jobs"].start(run_id)
+            except RuntimeError as exc:
+                raise HTTPException(409, str(exc))
+            return {"ok": True}
+        if not (folder / "checkpoint.pt").is_file():
             raise HTTPException(409, "No checkpoint to continue from")
         config = dict(record["config"])
         extra = int(data.get("extra_steps") or 0)
@@ -354,6 +399,9 @@ def create_app(runs_dir=None):
         job = state["jobs"].get(run_id)
         if job is not None and job.active and job.trainer is not None and job.trainer.model is not None:
             return _png(job.trainer.preview(cam, size))
+        building = job.preview_model() if job is not None and job.active else None
+        if building is not None:
+            return _png(_render_model(building, cam, size))
         try:
             model = state["renderer"].model_for(store().path(run_id))
         except FileNotFoundError as exc:
@@ -371,6 +419,8 @@ def create_app(runs_dir=None):
         name = f"splats.{fmt}"
         if job is not None and job.active and job.trainer is not None and job.trainer.model is not None:
             job.trainer.export(fmt, folder / name)
+        elif job is not None and job.active and job.preview_model() is not None:
+            export_model(job.preview_model(), fmt, folder / name)
         else:
             model = state["renderer"].model_for(folder)
             export_model(model, fmt, folder / name)

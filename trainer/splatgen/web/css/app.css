@@ -208,8 +208,8 @@ details.group[open] summary::before { transform: rotate(90deg); }
   background: var(--panel-2); color: var(--muted); text-transform: capitalize;
 }
 .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.pill.training, .pill.loading, .pill.saving, .pill.queued { color: #b5a3ff; background: var(--accent-soft); }
-.pill.training::before { animation: pulse 1.2s infinite; }
+.pill.training, .pill.loading, .pill.saving, .pill.queued, .pill.building, .pill.built { color: #b5a3ff; background: var(--accent-soft); }
+.pill.training::before, .pill.building::before { animation: pulse 1.2s infinite; }
 .pill.finished, .pill.imported { color: var(--ok); background: rgba(60, 207, 145, 0.12); }
 .pill.paused, .pill.stopped, .pill.stopping { color: var(--warn); background: rgba(245, 181, 70, 0.12); }
 .pill.failed { color: var(--err); background: rgba(255, 93, 108, 0.12); }

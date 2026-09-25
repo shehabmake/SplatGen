@@ -64,3 +64,30 @@ def test_full_flow(client, dataset, tmp_path):
 def test_bad_dataset_is_reported(client, tmp_path):
     response = client.get("/api/dataset", params={"path": str(tmp_path)})
     assert response.status_code == 404
+
+
+def test_build_then_polish(client, raw_build, dataset):
+    info = client.get("/api/dataset", params={"path": str(raw_build)}).json()
+    assert info["extras"]["raw_dataset"] is True
+    methods = client.get("/api/presets").json()["methods"]
+    assert set(methods) == {"train", "construct", "construct_train"}
+    # a plain COLMAP dataset cannot be built from raw data
+    assert client.post("/api/runs", json={"dataset": str(dataset), "method": "construct"}).status_code == 400
+
+    run = client.post("/api/runs", json={
+        "dataset": str(raw_build), "method": "construct", "config": {"test_every": 4},
+        "construct": {"rounds": 1, "background_resolution": 12}}).json()
+    done = wait(client, run["id"])
+    assert done["status"] == "finished", done["error"]
+    assert done["method"] == "construct" and done["results"]["eval"]["views"] == 3
+    assert done["results"]["construct"]["rounds"][0]["splats"] == done["results"]["gaussians"]
+    assert client.get(f"/api/runs/{run['id']}/preview", params={"camera": 1}).headers["content-type"] == "image/png"
+    assert len(client.get(f"/api/runs/{run['id']}/splat").content) == 32 * done["results"]["gaussians"]
+
+    # polish the finished build with a few training steps
+    assert client.post(f"/api/runs/{run['id']}/resume", json={"extra_steps": 6}).json()["ok"]
+    polished = wait(client, run["id"])
+    assert polished["status"] == "finished", polished["error"]
+    assert polished["method"] == "construct_train" and polished["step"] == 6
+    assert polished["config"]["init"] == "ply"
+    assert "construct" in polished["results"]

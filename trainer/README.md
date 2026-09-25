@@ -38,7 +38,11 @@ is 50–100× slower and only practical for small scenes at reduced resolution.
    COLMAP dataset. Folders the app can read are marked **Dataset**.
 2. **Dataset** shows the images, the sparse points and every camera in 3D.
    Click an image to look through its camera.
-3. **Train** — pick a preset (**Preview** 2k steps at half resolution,
+3. **Train** — choose a **method**. With a raw export (`Dataset(Raw)` next
+   to `Dataset(Default)`) you can **Build from raw data** (no training: splats
+   are placed on the surface and coloured directly, in seconds to minutes) or
+   **Build + polish** (the build followed by a short training run); see
+   [docs/CONSTRUCT.md](../docs/CONSTRUCT.md). For **Train**, pick a preset (**Preview** 2k steps at half resolution,
    **Standard** 7k, **High quality** 30k), adjust anything under the advanced
    groups, and start. The monitor shows progress, loss/PSNR charts, the splat
    count and a live render next to the ground truth. **Pause**, **Stop & save**,
@@ -58,6 +62,7 @@ Runs live in `~/SplatGen/runs/<run>/` (change it in **Settings**): `run.json`,
 splatgen                                  # the app
 splatgen train <dataset> --preset standard [--steps N] [--out DIR] [--set key=value ...]
 splatgen train <dataset> --resume out/checkpoint.pt --steps 30000
+splatgen build <build folder> --out DIR [--polish STEPS] [--set key=value ...]   # no training
 splatgen export out/checkpoint.pt --format splat --out scene.splat
 splatgen info [<dataset>]                 # GPU, renderer, dataset summary
 ```
@@ -76,11 +81,21 @@ steps. Every 8th image is held out and reported as **Test PSNR/SSIM**.
 Coordinates stay in the dataset's frame (Blender world space, Z up, for
 SplatGen datasets), so the PLY lines up with the Blender scene.
 
+## Building without training
+
+`splatgen build` reads the raw passes (position, normals, ids, roughness)
+and constructs the splats directly: surface samples → octree detail map →
+adaptive split down to the pixel footprint → flat disks fitted to each cell
+(two thin splats across colour edges) → spherical harmonics solved from every
+camera → render, solve colours against the images and split where the error
+stays high, for a few rounds. The full description is in
+[docs/CONSTRUCT.md](../docs/CONSTRUCT.md); the code is in `splatgen/construct/`.
+
 ## Extending
 
 | To add | Where |
 |---|---|
-| A dataset format (e.g. the raw dataset) | `splatgen/data/` — a module with `can_load` / `load` returning a `Scene`, registered in `data/__init__.py` |
+| A dataset format | `splatgen/data/` — a module with `can_load` / `load` returning a `Scene`, registered in `data/__init__.py` |
 | A way to create the first splats | `Trainer._initial_params` (`splatgen/train/trainer.py`) + `TrainConfig.init` |
 | Extra loss terms / supervision | `Trainer.train_step` + fields in `splatgen/config.py` |
 | A renderer | `splatgen/render/` — same `rasterize(...)` contract, registered in `render/__init__.py` |
@@ -94,7 +109,8 @@ pip install -e ".[dev]"
 pytest                      # builds a synthetic dataset and trains on it (CPU)
 ```
 
-The tests cover COLMAP text/binary reading, the rasterizer, densification with
+The tests cover the raw-dataset reader and the direct build (on a synthetic
+textured plane), COLMAP text/binary reading, the rasterizer, densification with
 Adam state, training improvement on held-out views, checkpoint resume, PLY /
 .splat round trips and the full API flow.
 

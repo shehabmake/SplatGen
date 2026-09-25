@@ -15,6 +15,7 @@ dependencies = [
   "pillow",
   "fastapi>=0.110",
   "uvicorn>=0.27",
+  "OpenEXR>=3.2",
 ]
 
 [project.optional-dependencies]
