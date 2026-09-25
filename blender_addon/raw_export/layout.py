@@ -27,9 +27,10 @@ it::
             scene/             scene mesh + collision voxels
             environment/       world render + reflection probes
 
-Every per-view raster is ``<folder>/frame_NNNN.exr`` with the same frame
-number as the legacy ``Dataset(Default)/images/frame_NNNN.*`` image, so any
-pass lines up with the legacy RGB and with ``images.txt`` by name alone.
+Every per-view raster is ``<folder>/frame_NNNN_<pass>.exr``: the frame
+number of the legacy ``Dataset(Default)/images/frame_NNNN.*`` image, then the
+pass key, so a file says which view and which data it holds even outside its
+folder, and files sort by view.
 
 ``PASSES`` is the single registry of per-view render passes. Capture,
 publishing, completeness checks and the manifest are all driven from it, so
@@ -38,7 +39,7 @@ adding a pass is one entry here and nothing else.
 
 from pathlib import Path
 
-SCHEMA = "splatgen-raw-dataset-v1"
+SCHEMA = "splatgen-raw-dataset-v2"
 RAW_FOLDER = "Dataset(Raw)"
 #: Temporary capture folder inside the raw root; removed when a stage ends.
 WORK_FOLDER = ".work"
@@ -63,7 +64,7 @@ SCENE_MESH_INFO = f"{SCENE}/scene_mesh.json"
 VOXELS = f"{SCENE}/collision_voxels.npz"
 VOXELS_INFO = f"{SCENE}/collision_voxels.json"
 WORLD_FOLDER = f"{ENVIRONMENT}/world"
-WORLD_RENDER = f"{WORLD_FOLDER}/world_equirect.exr"
+WORLD_RENDER = f"{WORLD_FOLDER}/world_radiance.exr"
 WORLD_INFO = f"{WORLD_FOLDER}/world.json"
 PROBES_FOLDER = f"{ENVIRONMENT}/probes"
 PROBES_INFO = f"{PROBES_FOLDER}/probes.json"
@@ -88,7 +89,7 @@ def _pass(key, folder, source, sockets, item, *, group, label, flags=(),
         "folder": folder,
         "source": source,
         "sockets": tuple(sockets),
-        # File Output item type: RGBA, VECTOR or FLOAT.
+        # Stored channels: RGBA (R,G,B,A), RGB (R,G,B) or FLOAT (V).
         "item": item,
         # Settings toggle that owns this pass (see properties.py).
         "group": group,
@@ -166,31 +167,32 @@ for _key, _socket, _flag in (
 
 # -- 2. Geometry & spatial data ----------------------------------------------
 _register(
-    _pass("position", f"{GEOMETRY}/position", BEAUTY, ("Position",), "VECTOR",
+    _pass("position", f"{GEOMETRY}/position", BEAUTY, ("Position",), "RGB",
           group="geometry", label="Position", flags=((_L, "use_pass_position"),),
-          space="Blender world space, metres (scene units)",
+          space="R,G,B = world X,Y,Z; Blender world space, scene units",
           description="World-space position of the first visible surface."),
     _pass("depth", f"{GEOMETRY}/depth", BEAUTY, ("Depth", "Z"), "FLOAT",
           group="geometry", label="Depth", flags=((_L, "use_pass_z"),),
           space="camera-space planar Z distance; background = 1e10", exact=True,
           description="Metric camera depth, identical to legacy Dataset(Default)/depth."),
-    _pass("normal", f"{GEOMETRY}/normal", BEAUTY, ("Normal",), "VECTOR",
+    _pass("normal", f"{GEOMETRY}/normal", BEAUTY, ("Normal",), "RGB",
           group="geometry", label="Normal", flags=((_L, "use_pass_normal"),),
-          policy=POLICY_HALF, space="Blender world space, shading normal (normal maps applied)",
+          policy=POLICY_HALF,
+          space="R,G,B = world X,Y,Z of the shading normal (normal maps applied), -1..1",
           description="World-space shading normal."),
     _pass("true_normal", f"{GEOMETRY}/true_normal", BEAUTY, ("sg_true_normal",),
           "RGBA", group="geometry", label="True Normal",
           aov=("sg_true_normal", "COLOR"), policy=POLICY_HALF,
-          space="Blender world space geometric normal in RGB; A = AOV coverage",
+          space="R,G,B = world X,Y,Z of the geometric normal, -1..1; A = AOV coverage",
           description="Geometric (face) normal without bump or normal maps."),
-    _pass("uv", f"{GEOMETRY}/uv", BEAUTY, ("UV",), "VECTOR", group="geometry",
+    _pass("uv", f"{GEOMETRY}/uv", BEAUTY, ("UV",), "RGB", group="geometry",
           label="UV", flags=((_L, "use_pass_uv"),),
-          space="X,Y = active render UV map, Z = coverage",
+          space="R,G = U,V of the active render UV map; B = coverage",
           description="Texture coordinates of the active render UV map."),
     _pass("object_coords", f"{GEOMETRY}/object_coords", BEAUTY,
           ("sg_object_coords",), "RGBA", group="geometry",
           label="Object Coordinates", aov=("sg_object_coords", "COLOR"),
-          space="object-local position in RGB; A = AOV coverage",
+          space="R,G,B = object-local X,Y,Z; A = AOV coverage",
           description="Position in the owning object's local space."),
     _pass("pointiness", f"{GEOMETRY}/pointiness", BEAUTY, ("sg_pointiness",),
           "FLOAT", group="geometry", label="Pointiness",
@@ -280,9 +282,9 @@ _register(
           policy=POLICY_HALF, space="linear RGB",
           description="Cycles denoising albedo feature pass."),
     _pass("denoising_normal", f"{MOTION}/denoising_normal", BEAUTY,
-          ("Denoising Normal",), "VECTOR", group="motion",
+          ("Denoising Normal",), "RGB", group="motion",
           label="Denoising Normal", flags=((_C, "denoising_store_passes"),),
-          policy=POLICY_HALF, space="as written by Cycles for its denoiser",
+          policy=POLICY_HALF, space="R,G,B = X,Y,Z as written by Cycles for its denoiser",
           description="Cycles denoising normal feature pass."),
 )
 
@@ -311,8 +313,21 @@ def work_dir(root):
     return Path(root) / WORK_FOLDER
 
 
+def pass_name(key, stem):
+    return f"{stem}_{key}.exr"
+
+
+def pass_path(root, key, stem):
+    return Path(root) / PASSES[key]["folder"] / pass_name(key, stem)
+
+
+def pass_pattern(key):
+    """Manifest path pattern, relative to the raw root."""
+    return f"{PASSES[key]['folder']}/{pass_name(key, '{stem}')}"
+
+
 def pass_file(root, key, frame_index):
-    return Path(root) / PASSES[key]["folder"] / f"{frame_stem(frame_index)}.exr"
+    return pass_path(root, key, frame_stem(frame_index))
 
 
 def view_complete(root, frame_index, keys):

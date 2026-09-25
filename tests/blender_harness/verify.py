@@ -7,11 +7,16 @@ fails = []
 def check(cond, msg):
     print(("PASS " if cond else "FAIL ") + msg)
     if not cond: fails.append(msg)
+man = json.load(open(os.path.join(R, "manifest.json")))
 def exr(rel, stem="frame_0000"):
-    p = os.path.join(R, rel, stem + ".exr") if not rel.endswith(".exr") else os.path.join(R, rel)
+    """rel is a pass folder (resolved via the manifest) or a file path."""
+    if rel.endswith(".exr"):
+        p = os.path.join(R, rel)
+    else:
+        key = next(k for k, v in man["passes"].items() if v["path_pattern"].startswith(rel + "/"))
+        p = os.path.join(R, man["passes"][key]["path_pattern"].replace("{stem}", stem))
     i = oiio.ImageInput.open(p); a = np.asarray(i.read_image(oiio.FLOAT)); i.close()
     return a
-man = json.load(open(os.path.join(R, "manifest.json")))
 ids = json.load(open(os.path.join(R, "ids/id_map.json")))
 cams = json.load(open(os.path.join(R, "cameras/cameras.json")))
 oid = {e["name"]: e["id"] for e in ids["objects"]}; mid = {e["name"]: e["id"] for e in ids["materials"]}
@@ -69,6 +74,14 @@ for f in cams["frames"]:
     cm = (o > 0)
     check(np.allclose(np.median(clay[cm], 0), 0.8, atol=0.01), f"{stem}: clay diffuse color 0.8 ({np.median(clay[cm],0)})")
     uv = exr("geometry/uv", stem); check(uv[..., :2].min() >= -1e-4 and uv[..., :2].max() <= 1 + 1e-4, f"{stem}: uv in [0,1]")
+# channel naming: vectors are stored as color channels
+for key, want in (("normal", ["R", "G", "B"]), ("position", ["R", "G", "B"]), ("uv", ["R", "G", "B"]),
+                  ("true_normal", ["R", "G", "B", "A"]), ("depth", ["V"])):
+    check(man["passes"][key]["channels"] == want, f"{key} channels {man['passes'][key]['channels']}")
+check(man["passes"]["normal"]["pixel_type"] == "half", f"normal stored as {man['passes']['normal']['pixel_type']}")
+names_ok = all(os.path.basename(f).startswith("frame_") and os.path.basename(f).endswith("_" + k + ".exr")
+               for k in man["passes"] for f in glob.glob(os.path.join(R, man["passes"][k]["path_pattern"].replace("{stem}", "*"))))
+check(names_ok, "every per-view file is frame_NNNN_<pass>.exr")
 # legacy identity
 if base:
     def files(root):
@@ -106,12 +119,12 @@ check((lab == 2).sum() > 0 and (lab == 1).sum() > 0, "voxels have surface and en
 for f in cams["frames"]:
     idx = np.floor((np.array(f["position"]) - vox["origin"]) / vox["voxel_size"]).astype(int)
     check(lab[tuple(idx)] == 0, f"camera {f['camera_name']} voxel is free")
-if os.path.exists(os.path.join(R, "environment/world/world_equirect.exr")):
-  w = exr("environment/world/world_equirect.exr"); print("world", w.shape, w[..., :3].mean((0, 1)))
+if os.path.exists(os.path.join(R, "environment/world/world_radiance.exr")):
+  w = exr("environment/world/world_radiance.exr"); print("world", w.shape, w[..., :3].mean((0, 1)))
   check(w.shape[1] == 2 * w.shape[0], "world equirect is 2:1")
 if os.path.exists(os.path.join(R, "environment/probes/probes.json")):
   pr = json.load(open(os.path.join(R, "environment/probes/probes.json")))
   print("probes", [(p["id"], np.round(p["position"], 2).tolist()) for p in pr["probes"]])
-  d = exr("environment/probes/probe_000/distance.exr")[..., 0]
+  d = exr("environment/probes/probe_000_distance.exr")[..., 0]
   check(np.isfinite(d).all() and d.min() > 0, f"probe distance positive (min {d.min():.3f}, median {np.median(d):.3f})")
 print("\n%d FAILURES" % len(fails) if fails else "\nALL CHECKS PASSED")

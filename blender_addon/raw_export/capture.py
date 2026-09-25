@@ -35,7 +35,11 @@ from . import layout
 PREFIX = "__SPLATGEN_RAW__"
 AOV_PREFIX = "sg_"
 
-_ITEM_COLOR_MODE = {"RGBA": "RGBA", "VECTOR": "RGB", "FLOAT": "BW"}
+#: Stored channels -> (File Output item type, EXR color mode). Vectors are
+#: written as color so every viewer opens them as an image; the channel
+#: meaning (R=X, G=Y, B=Z) is recorded per pass in the manifest.
+_ITEM_FORMAT = {"RGBA": ("RGBA", "RGBA"), "RGB": ("RGBA", "RGB"),
+                "FLOAT": ("FLOAT", "BW")}
 
 
 # --------------------------------------------------------------------------
@@ -160,9 +164,10 @@ class CaptureSession:
         except (AttributeError, TypeError):
             pass
         fmt.file_format = "OPEN_EXR"
+        item_type, color_mode = _ITEM_FORMAT[item]
         try:
-            fmt.color_mode = _ITEM_COLOR_MODE[item]
-        except (TypeError, KeyError):
+            fmt.color_mode = color_mode
+        except TypeError:
             pass
         fmt.color_depth = depth
         try:
@@ -173,7 +178,7 @@ class CaptureSession:
             node.save_as_render = False
         except (AttributeError, TypeError):
             pass
-        node.file_output_items.new(item, key)
+        node.file_output_items.new(item_type, key)
         self.tree.links.new(source_socket, node.inputs[key])
         self.outputs[key] = {"node": node, "folder": folder, "target": target}
         return node
@@ -728,7 +733,7 @@ def build_outputs(session, raw, definitions, raw_root):
         depth, codec = exr_settings(raw, definition)
         session.add_output(
             key, socket, definition["item"],
-            lambda stem, key=key: Path(raw_root) / layout.PASSES[key]["folder"] / f"{stem}.exr",
+            lambda stem, key=key: layout.pass_path(raw_root, key, stem),
             depth, codec,
         )
 

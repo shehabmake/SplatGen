@@ -26,8 +26,8 @@ from . import capture, layout, properties, sessions
 
 CONVENTIONS = {
     "pixel_origin": "top-left; every per-view raster matches the legacy RGB image without flipping",
-    "frame_naming": "frame_NNNN matches Dataset(Default)/images/frame_NNNN.* and images.txt names",
-    "exr": "single-part OpenEXR; RGBA passes use channels R,G,B,A, vector passes X,Y,Z, scalar passes V",
+    "file_naming": "frame_NNNN_<pass>.exr; frame_NNNN matches Dataset(Default)/images/frame_NNNN.* and images.txt names",
+    "exr": "single-part OpenEXR; color and vector passes use channels R,G,B(,A), scalar passes V; each pass's 'space' says what R,G,B mean (vectors: R=X, G=Y, B=Z)",
     "color": "scene-linear in the Blender working space (see color_management); no view transform",
     "world_frame": "Blender world space: right-handed, Z up, scene units; identical to the legacy COLMAP export frame",
     "camera_axes_blender": "c2w_blender: camera looks down -Z, +Y up, +X right",
@@ -337,7 +337,7 @@ def copy_environment_images(world, folder):
         if node.bl_idname != "ShaderNodeTexEnvironment" or image is None:
             continue
         name = Path(image.filepath or image.name).name or "environment"
-        target = folder / f"source_{name}"
+        target = folder / f"world_source_{name}"
         folder.mkdir(parents=True, exist_ok=True)
         try:
             if image.packed_file is not None:
@@ -501,7 +501,7 @@ def _exr_header(path):
         handle.close()
 
 
-_DEFAULT_CHANNELS = {"RGBA": ["R", "G", "B", "A"], "VECTOR": ["X", "Y", "Z"],
+_DEFAULT_CHANNELS = {"RGBA": ["R", "G", "B", "A"], "RGB": ["R", "G", "B"],
                      "FLOAT": ["V"]}
 
 
@@ -541,16 +541,16 @@ def write_manifest(scene, build, root, frames, resolution, color_management,
         if present:
             channels, pixel_type = _exr_header(
                 layout.pass_file(root, key, present[0]["index"]))
-        # Blender only honours half precision for RGBA File Output items.
+        # Blender only honours half precision for color (R,G,B) outputs.
         expected_type = "float"
-        if definition["item"] == "RGBA":
+        if definition["item"] in {"RGBA", "RGB"}:
             expected_type = {layout.POLICY_APPEARANCE: appearance_type,
                              layout.POLICY_HALF: "half"}.get(definition["policy"], "float")
         entry = {
             "label": definition["label"],
             "group": definition["group"],
             "source": definition["source"],
-            "path_pattern": f"{definition['folder']}/{{stem}}.exr",
+            "path_pattern": layout.pass_pattern(key),
             "channels": channels or _DEFAULT_CHANNELS[definition["item"]],
             "pixel_type": pixel_type or expected_type,
             "compression": (raw.appearance_codec
@@ -621,7 +621,7 @@ README_TEXT = """SplatGen raw dataset
 
 Everything SplatGen could extract from the Blender scene for this build.
 manifest.json is the table of contents: every pass, its path pattern
-(appearance/combined/{stem}.exr ...), channels, storage, coordinate space and
+(appearance/combined/{stem}_combined.exr ...), channels, storage, space and
 completeness, and every scene-level file. scene_description.json describes the
 objects, lights, materials, world and render settings.
 
@@ -638,7 +638,8 @@ objects, lights, materials, world and render settings.
   scene/             scene_mesh.ply (+ .json), collision_voxels.npz (+ .json)
   environment/       world/ equirect render + source HDRI, probes/ captures
 
-Per-view files are frame_NNNN.exr and match Dataset(Default)/images/frame_NNNN.*
+Per-view files are frame_NNNN_<pass>.exr (e.g. geometry/normal/frame_0003_normal.exr);
+frame_NNNN matches Dataset(Default)/images/frame_NNNN.*
 The legacy ../Dataset(Default) and ../sg_metadata folders are unchanged.
 """
 

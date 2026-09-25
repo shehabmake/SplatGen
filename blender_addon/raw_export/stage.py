@@ -134,7 +134,7 @@ class _WorldStep(_RenderStep):
         folder = stage.root / layout.WORLD_FOLDER
         copied = metadata.copy_environment_images(stage.scene.world, folder)
         info = {
-            "render": "world_equirect.exr" if "world" in published else None,
+            "render": Path(layout.WORLD_RENDER).name if "world" in published else None,
             "resolution": [int(raw.world_resolution) * 2, int(raw.world_resolution)],
             "projection": metadata.CONVENTIONS["equirect"],
             "engine": "CYCLES",
@@ -184,8 +184,7 @@ class _ProbeStep(_RenderStep):
         super().finish(stage, item, published, missing)
         record = dict(item["probe"])
         record["id"] = item["stem"]
-        record["files"] = {key: f"{item['stem']}/{Path(path).name}"
-                           for key, path in published.items()}
+        record["files"] = {key: Path(path).name for key, path in published.items()}
         stage.probe_records.append(record)
 
     def teardown(self, stage):

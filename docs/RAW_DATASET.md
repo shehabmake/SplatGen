@@ -1,8 +1,8 @@
-# SplatGen raw dataset (`Dataset(Raw)`) — format v1
+# SplatGen raw dataset (`Dataset(Raw)`) — format v2
 
 This is the contract between the Blender add-on (`blender_addon/`) and the
 SplatGen trainer app. The add-on writes it; the trainer reads it. Schema id:
-`splatgen-raw-dataset-v1` (in `manifest.json`).
+`splatgen-raw-dataset-v2` (in `manifest.json`).
 
 ## Where it lives
 
@@ -21,8 +21,18 @@ same build.
 
 ## Folder layout
 
-Per-view files are `frame_NNNN.exr`, numbered exactly like
-`Dataset(Default)/images/frame_NNNN.png` and the names in `images.txt`.
+Per-view files are named `frame_NNNN_<pass>.exr`, for example
+`geometry/normal/frame_0003_normal.exr` or
+`appearance/clay/diffuse_direct/frame_0003_clay_diffuse_direct.exr`:
+
+* `frame_NNNN` is the same number as `Dataset(Default)/images/frame_NNNN.png`
+  and the names in `images.txt`, so every pass lines up with its camera.
+* `<pass>` is the pass key used in `manifest.json`, so a file says what it
+  holds even when it is copied out of its folder.
+* The frame number comes first, so files sort by camera.
+
+Scene-level files are named after what they hold: `world_radiance.exr`,
+`probe_000_radiance.exr`, `probe_000_distance.exr`, `scene_mesh.ply`, …
 
 ```
 Dataset(Raw)/
@@ -68,11 +78,11 @@ Dataset(Raw)/
 │   └── collision_voxels.json
 └── environment/
     ├── world/
-    │   ├── world_equirect.exr  the world alone, equirectangular
-    │   ├── source_<name>       copy of every HDRI the world uses
+    │   ├── world_radiance.exr      the world alone, equirectangular
+    │   ├── world_source_<name>     copy of every HDRI the world uses
     │   └── world.json          background strength, mapping, source paths
     └── probes/
-        ├── probe_000/radiance.exr  distance.exr
+        ├── probe_000_radiance.exr  probe_000_distance.exr
         └── probes.json         positions, how they were chosen
 ```
 
@@ -82,7 +92,7 @@ Dataset(Raw)/
 |---|---|
 | World frame | Blender world space: right-handed, **Z up**, scene units (metres by default). Same frame as the legacy COLMAP files — the export transform is the identity. |
 | Pixel origin | Top-left. Every raster matches the legacy RGB with no flipping. |
-| EXR | Single-part OpenEXR. RGBA passes: channels `R,G,B,A`; vector passes: `X,Y,Z`; scalar passes: `V`. |
+| EXR | Single-part OpenEXR. Colour **and vector** passes use colour channels `R,G,B` (plus `A` where there is alpha or coverage), so every viewer opens them as an image; scalar passes use one channel `V`. For vectors `R = X`, `G = Y`, `B = Z` — each pass's `space` in the manifest spells it out. |
 | Colour | Scene-linear in Blender's working space (recorded under `color_management`); no view transform (AgX/Filmic) applied. The legacy PNGs *do* have the view transform. |
 | Camera axes | `c2w_blender`: looks down −Z, +Y up. `c2w_opencv` / `w2c_opencv`: +Z forward, +Y down (COLMAP). |
 | Intrinsics | Pixels, `PINHOLE` (`fx, fy, cx, cy`), principal point from the top-left pixel corner. Pixel centre `(u+0.5, v+0.5)`. |
@@ -134,14 +144,14 @@ Leftovers from a crash are named `__SPLATGEN_RAW__…` and purged on load.
 
 ```jsonc
 {
-  "schema": "splatgen-raw-dataset-v1",
+  "schema": "splatgen-raw-dataset-v2",
   "resolution": [W, H],
   "frame_count": N,
   "frames": [{"index": 0, "stem": "frame_0000", "camera_name": "...",
               "legacy_image": "../Dataset(Default)/images/frame_0000.png"}],
   "passes": {
     "roughness": {
-      "path_pattern": "material/roughness/{stem}.exr",
+      "path_pattern": "material/roughness/{stem}_roughness.exr",
       "channels": ["V"], "pixel_type": "float",
       "space": "raw shader input value",
       "status": "complete",          // complete | partial | missing | unavailable | disabled
@@ -185,10 +195,11 @@ Settings live in *Dataset settings → Raw data*:
   motion vectors are always stored exactly.
 * Every group can be switched off, and the whole raw export can be disabled.
 
-Blender only honours half precision for RGBA outputs, so scalar and vector
-passes are stored as float32; their flat regions compress very well.
+Blender only honours half precision for colour-channel outputs: normals are
+stored as half, position and UV stay float32 for precision, and scalar passes
+(`V`) are float32 — their flat regions compress very well.
 
-Measured on the test scene at 960×540 (Cycles, 16 samples), per view:
+Measured on the test scene at 960×540 (Cycles, 16 samples), per view (before normals moved to half precision in v2, so geometry is now slightly smaller):
 
 | Group | ZIP + ZIP (default) | DWAA color + PXR24 data |
 |---|---:|---:|
@@ -244,3 +255,12 @@ exact depth, and the lighting identity to within 1 %.
   material AOVs and keep their own pass index (listed in `id_map.json`).
 * Auxiliary renders (clay, world, probes) always use Cycles, even when the
   beauty render uses EEVEE.
+
+## Changes from v1
+
+* Per-view files renamed from `frame_NNNN.exr` to `frame_NNNN_<pass>.exr`.
+* Normal, position, UV and denoising normal use channels `R,G,B` instead of
+  `X,Y,Z` (same values); normals are now stored as half.
+* `world_equirect.exr` → `world_radiance.exr`, `source_<name>` →
+  `world_source_<name>`, `probe_000/radiance.exr` → `probe_000_radiance.exr`
+  (likewise `distance`).

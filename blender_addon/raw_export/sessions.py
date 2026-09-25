@@ -240,13 +240,13 @@ def begin_probes(scene, view_layer, root):
         probes = Path(root) / layout.PROBES_FOLDER
         session.add_output(
             "radiance", capture.find_socket(render_layers, ("Image",)), "RGBA",
-            lambda stem: probes / stem / "radiance.exr", "32", codec,
+            lambda stem: probes / f"{stem}_radiance.exr", "32", codec,
         )
         socket = capture.find_socket(render_layers, ("Depth", "Z"))
         if socket is not None:
             session.add_output(
                 "distance", socket, "FLOAT",
-                lambda stem: probes / stem / "distance.exr", "32", "ZIP",
+                lambda stem: probes / f"{stem}_distance.exr", "32", "ZIP",
             )
     except Exception:
         session.restore()
