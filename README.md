@@ -9,10 +9,16 @@ exact cameras, geometry, materials and lighting — and hands it to a trainer.
 | Path | What it is |
 |---|---|
 | `blender_addon/` | **SplatGen Prepare** Blender extension (Blender 5.3): camera placement, dataset build, raw data export. |
+| `trainer/` | **SplatGen trainer** app: trains Gaussian splats from those datasets, with a local web UI, live monitor and 3D viewer. See `trainer/README.md`. |
 | `docs/RAW_DATASET.md` | The `Dataset(Raw)` format: the contract between the add-on and the trainer. |
 | `tools/build_addon_zip.py` | Packages `blender_addon/` into an installable zip in `dist/`. |
 
-The trainer app and its web viewer will live alongside these.
+
+## Training splats
+
+Windows with an NVIDIA GPU: run `trainer/install_windows.bat` once, then
+`trainer/SplatGen.bat`. Open the build folder the add-on wrote, pick a preset
+and train. Details in `trainer/README.md`.
 
 ## Building and installing the add-on
 
