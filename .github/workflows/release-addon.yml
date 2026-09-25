@@ -1,10 +1,14 @@
 name: Release add-on
 
-# Push a tag like v5.3.1 to build the add-on zip and publish it as a GitHub
-# Release. The tag must match the version in blender_addon/blender_manifest.toml.
+# Publishes blender_addon as a downloadable zip on the GitHub Releases page.
+# Runs when main (or the add-on development branch) is pushed; if no release
+# exists yet for the version in blender_addon/blender_manifest.toml, it builds
+# the zip and creates release v<version>. Bump the version to publish a new one.
 on:
   push:
+    branches: ["main", "claude/busy-newton-wb615a"]
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,20 +23,30 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Check the tag matches the add-on version
+      - name: Read the add-on version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           version=$(python -c "import tomllib;print(tomllib.load(open('blender_addon/blender_manifest.toml','rb'))['version'])")
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match manifest version $version"
-            exit 1
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release v$version already exists; nothing to publish."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build the zip
+        if: steps.version.outputs.publish == 'true'
         run: python tools/build_addon_zip.py
 
       - name: Publish the release
+        if: steps.version.outputs.publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          name: SplatGen Prepare ${{ github.ref_name }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: SplatGen Prepare ${{ steps.version.outputs.tag }}
           body_path: .github/RELEASE_NOTES.md
           files: dist/*.zip
